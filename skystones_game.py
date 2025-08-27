@@ -1,0 +1,94 @@
+class SkystoneCard:
+    def __init__(self, card_id, name, top, bottom, left, right, owner=None, image_path=None):
+        self.card_id = card_id
+        self.name = name
+        self.values = {
+            "top": top,
+            "bottom": bottom,
+            "left": left,
+            "right": right
+        }
+        self.owner = owner  # Track who owns the card
+        self.image_path = image_path
+
+    def __repr__(self):
+        return f"<{self.name} T:{self.values['top']} B:{self.values['bottom']} L:{self.values['left']} R:{self.values['right']} Owner:{self.owner}>"
+
+class Board4x4:
+    def __init__(self):
+        self.size = 4
+        self.grid = [[None for _ in range(self.size)] for _ in range(self.size)]
+
+    def validate_coords(self, row, col):
+        return 1 <= row <= self.size and 1 <= col <= self.size
+
+    def is_empty(self, row, col):
+        if not self.validate_coords(row, col):
+            raise ValueError("Coordinates out of range.")
+        return self.grid[row-1][col-1] is None
+
+    def get_card(self, row, col):
+        if not self.validate_coords(row, col):
+            raise ValueError("Coordinates out of range.")
+        return self.grid[row-1][col-1]
+
+    def place_card(self, row, col, card: SkystoneCard):
+        if not self.validate_coords(row, col):
+            raise ValueError("Invalid coordinates. Use 1..4 for row and column.")
+        if not self.is_empty(row, col):
+            raise ValueError(f"Cell {row}.{col} is already occupied.")
+
+        self.grid[row-1][col-1] = card
+        self.capture_adjacent(row, col, card)
+        return True
+
+    def capture_adjacent(self, row, col, card: SkystoneCard):
+        """Check all four directions for capture and flip opponent cards."""
+        directions = {
+            "top": (row-1, col, "bottom"),
+            "bottom": (row+1, col, "top"),
+            "left": (row, col-1, "right"),
+            "right": (row, col+1, "left")
+        }
+
+        for dir_name, (r, c, opposite) in directions.items():
+            if self.validate_coords(r, c):
+                neighbor = self.get_card(r, c)
+                if neighbor and neighbor.owner != card.owner:
+                    if card.values[dir_name] > neighbor.values[opposite]:
+                        neighbor.owner = card.owner  # Flip card
+
+    def display(self):
+        header = "   " + " ".join(f" {c} " for c in range(1, self.size+1))
+        print(header)
+        print("  +" + "---+"*self.size)
+        for r in range(1, self.size+1):
+            row_cells = []
+            for c in range(1, self.size+1):
+                val = self.get_card(r, c)
+                if val is None:
+                    row_cells.append(" . ")
+                else:
+                    row_cells.append(f"{val.name[0]}{val.owner[0]}")
+            print(f"{r} |" + "|".join(row_cells) + "|")
+            print("  +" + "---+"*self.size)
+
+
+# --- Example usage ---
+if __name__ == "__main__":
+    # Create cards with owner
+    rock_chomp = SkystoneCard("stone_001", "Rock Chomp", 3, 4, 2, 5, owner="Host")
+    flame_blast = SkystoneCard("stone_002", "Flame Blast", 4, 3, 5, 2, owner="Visitor")
+    water_surge = SkystoneCard("stone_003", "Water Surge", 2, 5, 3, 4, owner="Host")
+
+    # Create board
+    board = Board4x4()
+
+    # Place cards
+    board.place_card(2, 2, rock_chomp)
+    board.place_card(2, 3, flame_blast)
+    board.place_card(1, 3, water_surge)
+
+    # Display board
+    board.display()
+  
